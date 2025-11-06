@@ -1,5 +1,12 @@
-use std::{fs, io::Write, os::unix::fs::PermissionsExt, path::PathBuf, time::Duration};
+use std::{
+    env, fs,
+    io::Write,
+    os::unix::fs::PermissionsExt,
+    path::{Path, PathBuf},
+    time::Duration,
+};
 
+use anyhow::Context;
 use reqwest::blocking::{Client, ClientBuilder};
 use serde_json::Value;
 
@@ -12,21 +19,33 @@ pub fn get_node_binary(version: &str) -> anyhow::Result<PathBuf> {
         "https://{S3_NODE_ENDPOINT}/{version}/allfeat-linux-{}",
         arch_suffix()
     );
-    let bin_path: PathBuf = ["./allfeat"].iter().collect();
+
+    let base_dir = env::var("CACHE_DIRECTORY")
+        .or_else(|_| env::var("STATE_DIRECTORY"))
+        .unwrap_or_else(|_| "/var/lib/validator".to_string());
+    let target_dir = Path::new(&base_dir).join("allfeat-bootstrap");
+    let bin_path = target_dir.join("allfeat");
+
+    fs::create_dir_all(&target_dir)
+        .with_context(|| format!("Couldn't create directory {}", target_dir.display()))?;
 
     let downloader = ClientBuilder::new()
         .timeout(Duration::from_secs(60))
         .build()?;
     let mut resp = downloader.get(dl_url).send()?.error_for_status()?;
 
-    let mut file = fs::File::create(&bin_path)?;
+    let mut file = fs::File::create(&bin_path).context(format!(
+        "Couldn't write on disk at {}",
+        bin_path.to_string_lossy()
+    ))?;
     resp.copy_to(&mut file)?;
     file.flush()?;
 
     // Give permissions to exec
     let mut perms = fs::metadata(&bin_path)?.permissions();
     perms.set_mode(0o755);
-    fs::set_permissions(&bin_path, perms)?;
+    fs::set_permissions(&bin_path, perms)
+        .context("Couldn't set executable permissions on node binary")?;
 
     println!("Node downloaded to: {}", bin_path.to_string_lossy());
     Ok(bin_path)

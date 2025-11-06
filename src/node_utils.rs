@@ -8,6 +8,7 @@ pub fn inject_session_keys(
     node_path: &Path,
     chain_spec: &Path,
     secrets: &SecretData,
+    base_path: &[&str],
 ) -> anyhow::Result<()> {
     // Inject Grandpa key
     Command::new(node_path)
@@ -27,6 +28,7 @@ pub fn inject_session_keys(
             "--password",
             &secrets.keystore_secret,
         ])
+        .args(base_path)
         .status()?;
     // Inject Aura key
     Command::new(node_path)
@@ -46,6 +48,7 @@ pub fn inject_session_keys(
             "--password",
             &secrets.keystore_secret,
         ])
+        .args(base_path)
         .status()?;
     // Inject ImOnline key
     Command::new(node_path)
@@ -65,6 +68,7 @@ pub fn inject_session_keys(
             "--password",
             &secrets.keystore_secret,
         ])
+        .args(base_path)
         .status()?;
 
     println!("Finished injecting session keys.");

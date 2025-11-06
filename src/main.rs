@@ -125,9 +125,20 @@ fn main() -> anyhow::Result<()> {
     let response = get_secret_for(&client, &okms_id, &path)?;
     let secrets_resp: SecretResponse = response.json()?;
 
-    inject_session_keys(&node_bin, &spec_path, &secrets_resp.version.data)?;
+    let base_path_arg: &[&str] = match cli.base_path {
+        Some(base_path) => &["--base-path", &base_path.clone()],
+        None => &[],
+    };
+
+    inject_session_keys(
+        &node_bin,
+        &spec_path,
+        &secrets_resp.version.data,
+        base_path_arg,
+    )?;
 
     let status = Command::new(node_bin)
+        .args(base_path_arg)
         .arg("--validator")
         .arg("--node-key")
         .arg(secrets_resp.version.data.node_key)

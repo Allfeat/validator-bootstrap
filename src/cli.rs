@@ -28,6 +28,10 @@ pub struct Cli {
     #[arg(long)]
     pub ovh_secret_path: String,
 
+    /// The path to the chains data, this is the same as the Allfeat node.
+    #[arg(long)]
+    pub base_path: Option<String>,
+
     /// Extra arguments to start the validator node with.
     #[arg(last = true)]
     pub extra_args: Vec<String>,
